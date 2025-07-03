@@ -13,6 +13,8 @@ import SwiftUI
 class ViewController: UIViewController {
     
     @IBOutlet weak var collectionView: UICollectionView!
+    @IBOutlet weak var popularCollectionView: UICollectionView!
+    @IBOutlet weak var upcomingCollectionView: UICollectionView!
     private var viewModel: MovieViewModel!
     private var isSearching: Bool {
         return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
@@ -112,37 +114,89 @@ extension ViewController: UITextFieldDelegate, UICollectionViewDelegate, UIColle
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.showsHorizontalScrollIndicator = false
+        popularCollectionView.delegate = self
+        popularCollectionView.dataSource = self
+        upcomingCollectionView.delegate = self
+        upcomingCollectionView.dataSource = self
+        
     }
     
-     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-         return isSearching ? viewModel.searchMovies.count : viewModel.movies.count
-     }
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if collectionView == self.collectionView {
+            return isSearching ? viewModel.searchMovies.count : viewModel.movies.count
+        } else if collectionView == popularCollectionView {
+            return viewModel.popularMovies.count
+        } else if collectionView == upcomingCollectionView {
+            return viewModel.upcomingMovies.count
+        }
+        return 0
+    }
 
-     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! MovieCollectionViewCell
-             let movie = isSearching ? viewModel.searchMovies[indexPath.row] : viewModel.movies[indexPath.row]
-             cell.configure(with: movie)
-             return cell
-     }
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! MovieCollectionViewCell
+        
+        let movie: Movie
+        if collectionView == self.collectionView {
+            movie = isSearching ? viewModel.searchMovies[indexPath.row] : viewModel.movies[indexPath.row]
+        } else if collectionView == popularCollectionView {
+            movie = viewModel.popularMovies[indexPath.row]
+        } else if collectionView == upcomingCollectionView {
+            movie = viewModel.upcomingMovies[indexPath.row]
+        } else {
+            return cell
+        }
+        
+        cell.configure(with: movie)
+        return cell
+    }
     
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        if indexPath.row == viewModel.movies.count - 1 {
-                  if isSearching
-                    {
-                      guard let searchText = searchController.searchBar.text else { return }
-                        Task {
-                          await viewModel.searchMoviesNextPage(query: searchText)
-                      }
-                      return
-                    }
-                        Task {
-                       await viewModel.fetchMovies()
-                        }
-               }
+        let itemCount: Int
+        
+        if collectionView == self.collectionView {
+            itemCount = isSearching ? viewModel.searchMovies.count : viewModel.movies.count
+        } else if collectionView == popularCollectionView {
+            itemCount = viewModel.popularMovies.count
+        } else if collectionView == upcomingCollectionView {
+            itemCount = viewModel.upcomingMovies.count
+        } else {
+            return
+        }
+        
+        if indexPath.row == itemCount - 1 {
+            if collectionView == self.collectionView && isSearching {
+                guard let searchText = searchController.searchBar.text else { return }
+                Task {
+                    await viewModel.searchMoviesNextPage(query: searchText)
+                }
+            } else if collectionView == self.collectionView {
+                Task {
+                    await viewModel.fetchMovies()
+                }
+            } else if collectionView == popularCollectionView {
+                Task {
+                    await viewModel.fetchPopularMovies()
+                }
+            } else if collectionView == upcomingCollectionView {
+                Task {
+                    await viewModel.fetchUpcomingMovies()
+                }
+            }
+        }
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        navigateToDetails(movie: viewModel.movies[indexPath.row])
+        let movie: Movie
+        if collectionView == self.collectionView {
+            movie = isSearching ? viewModel.searchMovies[indexPath.row] : viewModel.movies[indexPath.row]
+        } else if collectionView == popularCollectionView {
+            movie = viewModel.popularMovies[indexPath.row]
+        } else if collectionView == upcomingCollectionView {
+            movie = viewModel.upcomingMovies[indexPath.row]
+        } else {
+            return
+        }
+        navigateToDetails(movie: movie)
     }
     
     func navigateToDetails(movie: Movie) {
@@ -174,12 +228,16 @@ extension ViewController {
 
         private func resetViewStatus() {
             collectionView.isHidden = false
+            popularCollectionView.isHidden = false
+            upcomingCollectionView.isHidden = false
             loadingContainerView.isHidden = true
             activityIndicator.stopAnimating()
         }
 
         private func presentLoadingStatus() {
             collectionView.isHidden = false
+            popularCollectionView.isHidden = false
+            upcomingCollectionView.isHidden = false
             loadingContainerView.isHidden = false
             activityIndicator.startAnimating()
         }
@@ -187,25 +245,41 @@ extension ViewController {
     private func presentLoadedStatus() {
         loadingContainerView.isHidden = true
         activityIndicator.stopAnimating()
-        if isSearching {
-                self.collectionView.reloadData()
-                return
-            }
-            
-        let currentItemCount = self.collectionView.numberOfItems(inSection: 0)
-        let newItemsCount = viewModel.movies.count
         
-        guard newItemsCount > currentItemCount else {
+        if isSearching {
             self.collectionView.reloadData()
+            self.popularCollectionView.reloadData()
+            self.upcomingCollectionView.reloadData()
             return
         }
         
-        var indexPaths = [] as [IndexPath]
-        for i in currentItemCount..<newItemsCount {
+        updateCollectionViewData(collectionView: self.collectionView,
+                               currentCount: self.collectionView.numberOfItems(inSection: 0),
+                               newCount: viewModel.movies.count)
+        
+        updateCollectionViewData(collectionView: popularCollectionView,
+                               currentCount: popularCollectionView.numberOfItems(inSection: 0),
+                               newCount: viewModel.popularMovies.count)
+        
+        updateCollectionViewData(collectionView: upcomingCollectionView,
+                               currentCount: upcomingCollectionView.numberOfItems(inSection: 0),
+                               newCount: viewModel.upcomingMovies.count)
+    }
+
+    private func updateCollectionViewData(collectionView: UICollectionView, currentCount: Int, newCount: Int) {
+        guard newCount > currentCount else {
+            collectionView.reloadData()
+            return
+        }
+        
+        var indexPaths: [IndexPath] = []
+        for i in currentCount..<newCount {
             indexPaths.append(IndexPath(item: i, section: 0))
         }
-        self.collectionView.performBatchUpdates({self.collectionView.insertItems(at: indexPaths)})
-       
+        
+        collectionView.performBatchUpdates({
+            collectionView.insertItems(at: indexPaths)
+        })
     }
 
 }

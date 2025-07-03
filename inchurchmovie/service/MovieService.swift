@@ -47,6 +47,42 @@ class MovieService {
         }
     }
     
+    func fetchPopularMovies(page: Int) async throws -> APIResult<MovieResponse> {
+        let apiKey = "448437debdee32834cb0047792a88c72"
+        
+        let urlStr =  "https://api.themoviedb.org/3/movie/popular?api_key=\(apiKey)&language=pt-BR&page=\(page)"
+        
+        guard let url = URL(string: urlStr) else {
+            throw MovieServiceError.unknown("Invalid URL string")
+        }
+        
+        do {
+         let (data, _) = try await session.data(from: url)
+        let decodedResponse = try JSONDecoder().decode(MovieResponse.self, from: data)
+            return .success(decodedResponse)
+        } catch {
+            throw MovieServiceError.unknown(error.localizedDescription)
+        }
+    }
+    
+    func fetchUpcomingMovies(page: Int) async throws -> APIResult<MovieResponse> {
+        let apiKey = "448437debdee32834cb0047792a88c72"
+        
+        let urlStr =  "https://api.themoviedb.org/3/movie/upcoming?api_key=\(apiKey)&language=pt-BR&page=\(page)"
+        
+        guard let url = URL(string: urlStr) else {
+            throw MovieServiceError.unknown("Invalid URL string")
+        }
+        
+        do {
+         let (data, _) = try await session.data(from: url)
+        let decodedResponse = try JSONDecoder().decode(MovieResponse.self, from: data)
+            return .success(decodedResponse)
+        } catch {
+            throw MovieServiceError.unknown(error.localizedDescription)
+        }
+    }
+    
     func searchMovies(page: Int, query: String) async throws -> APIResult<MovieResponse> {
         let apiKey = "448437debdee32834cb0047792a88c72"
         

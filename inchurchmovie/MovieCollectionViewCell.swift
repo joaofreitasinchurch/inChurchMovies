@@ -12,10 +12,12 @@ class MovieCollectionViewCell: UICollectionViewCell {
    
     @IBOutlet weak var movieTitleLabel: UILabel!
     @IBOutlet weak var movieImageView: UIImageView!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     private let gradientLayer = CAGradientLayer()
     
     override func awakeFromNib() {
         super.awakeFromNib()
+        self.activityIndicator.hidesWhenStopped = true
         setupPresentation()
     }
     
@@ -37,16 +39,26 @@ class MovieCollectionViewCell: UICollectionViewCell {
     
     func configure(with movie: Movie) {
         movieTitleLabel.text = movie.title
+        self.activityIndicator.startAnimating()
         
         if let posterPath = movie.posterPath {
             let baseURL = "https://image.tmdb.org/t/p/w500"
             let finalImageURL = URL(string: baseURL + (posterPath))
             movieImageView.kf.setImage(with: finalImageURL,
-                                       options: [.transition(.fade(0.2))])
+                                       options: [.transition(.fade(0.2))]){ result in
+                switch result {
+                case .success:
+                    self.activityIndicator.stopAnimating()
+                case .failure:
+                    self.movieImageView.image = UIImage(named: "no_poster")
+                    self.activityIndicator.stopAnimating()
+                }
+            }
         }
         else
         {
             movieImageView.image = UIImage(named: "no_poster")
+            self.activityIndicator.stopAnimating()
         }
         
     }

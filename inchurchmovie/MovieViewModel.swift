@@ -16,6 +16,9 @@ final class MovieViewModel: ObservableObject {
     @Published var status: ViewStatus = .none
     @Published private(set) var searchMovies: [Movie] = []
     @Published private(set) var movies: [Movie] = []
+    @Published private(set) var popularMovies: [Movie] = []
+    @Published private(set) var trendingMovies: [Movie] = []
+    @Published private(set) var upcomingMovies: [Movie] = []
     
     // MARK: - Public Properties
     var search: String = ""
@@ -23,6 +26,10 @@ final class MovieViewModel: ObservableObject {
     var searchCurrentPage: Int = 1
     var totalPages: Int = 1
     var currentPage: Int = 1
+    var popularTotalPages: Int = 1
+    var popularCurrentPage: Int = 1
+    var upcomingTotalPages: Int = 1
+    var upcomingCurrentPage: Int = 1
     
     // MARK: - Private Properties
     private var hasRequestInProgress: Bool = false
@@ -32,6 +39,8 @@ final class MovieViewModel: ObservableObject {
     init() {
         Task {
             await fetchMovies()
+            await fetchPopularMovies()
+            await fetchUpcomingMovies()
         }
     }
     
@@ -58,6 +67,78 @@ final class MovieViewModel: ObservableObject {
                 status = .loaded
                 totalPages = newMovies.totalPages
                 currentPage += 1
+            case .failure(let error):
+                errorMessages = error.localizedDescription
+                status = .error(error.localizedDescription)
+            }
+            
+            hasRequestInProgress = false
+            
+        } catch {
+            errorMessages = error.localizedDescription
+            status = .error(error.localizedDescription)
+            hasRequestInProgress = false
+        }
+    }
+    
+    func fetchPopularMovies() async {
+        guard !hasRequestInProgress else {
+            return
+        }
+        
+        guard popularCurrentPage <= popularTotalPages else {
+            return
+        }
+        
+        hasRequestInProgress = true
+        status = .loading
+        
+        do {
+            let result = try await movieService.fetchPopularMovies(page: currentPage)
+            
+            switch result {
+            case .success(let newMovies):
+                popularMovies.append(contentsOf: newMovies.results.removingDuplicates())
+                status = .loaded
+                popularTotalPages = newMovies.totalPages
+                popularCurrentPage += 1
+            case .failure(let error):
+                errorMessages = error.localizedDescription
+                status = .error(error.localizedDescription)
+            }
+            
+            hasRequestInProgress = false
+            
+        } catch {
+            errorMessages = error.localizedDescription
+            status = .error(error.localizedDescription)
+            hasRequestInProgress = false
+        }
+    }
+    
+    func fetchUpcomingMovies() async {
+        
+        guard !hasRequestInProgress else {
+            return
+        }
+        
+        guard upcomingCurrentPage <= upcomingTotalPages else {
+            return
+        }
+        
+        hasRequestInProgress = true
+        status = .loading
+        
+        do {
+            let result = try await movieService.fetchUpcomingMovies(page: currentPage)
+            
+            switch result {
+            case .success(let newMovies):
+                upcomingMovies.append(contentsOf: newMovies.results.removingDuplicates())
+                status = .loaded
+                upcomingTotalPages = newMovies.totalPages
+                print(newMovies.results)
+                upcomingCurrentPage += 1
             case .failure(let error):
                 errorMessages = error.localizedDescription
                 status = .error(error.localizedDescription)
