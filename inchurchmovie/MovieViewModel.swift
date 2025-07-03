@@ -73,6 +73,40 @@ final class MovieViewModel: ObservableObject {
     }
     
     func searchMovies(query: String) async {
+        guard !hasRequestInProgress else {
+            return
+        }
+        
+        guard searchCurrentPage <= searchTotalPages else {
+            return
+        }
+        
+        hasRequestInProgress = true
+        status = .loading
+        
+        do {
+            let result = try await movieService.searchMovies(page: searchCurrentPage, query: query)
+            
+            switch result {
+            case .success(let newMovies):
+                searchMovies = newMovies.results.removingDuplicates()
+                print(newMovies.results)
+                status = .loaded
+                searchTotalPages = newMovies.totalPages
+            case .failure(let error):
+                errorMessages = error.localizedDescription
+                status = .error(error.localizedDescription)
+            }
+            
+            hasRequestInProgress = false
+            
+        } catch {
+            errorMessages = error.localizedDescription
+            status = .error(error.localizedDescription)
+            hasRequestInProgress = false
+        }
+    }
+    func searchMoviesNextPage(query: String) async {
         
         guard !hasRequestInProgress else {
             return
@@ -86,15 +120,15 @@ final class MovieViewModel: ObservableObject {
         status = .loading
         
         do {
-            let result = try await movieService.searchMovies(page: currentPage, query: query)
+            let result = try await movieService.searchMovies(page: searchCurrentPage, query: query)
             
             switch result {
             case .success(let newMovies):
-                movies.append(contentsOf: newMovies.results.removingDuplicates())
+                searchMovies.append(contentsOf: newMovies.results.removingDuplicates())
                 print(newMovies.results)
                 status = .loaded
-                totalPages = newMovies.totalPages
-                currentPage += 1
+                searchTotalPages = newMovies.totalPages
+                searchCurrentPage += 1
             case .failure(let error):
                 errorMessages = error.localizedDescription
                 status = .error(error.localizedDescription)
@@ -107,5 +141,11 @@ final class MovieViewModel: ObservableObject {
             status = .error(error.localizedDescription)
             hasRequestInProgress = false
         }
+    }
+    
+    func resetSearch() {
+        searchMovies.removeAll()
+        searchCurrentPage = 1
+        searchTotalPages = 1
     }
 }
