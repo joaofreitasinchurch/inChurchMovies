@@ -4,6 +4,7 @@
 //
 //  Created by João Flavio Cardoso de Freitas Souza on 27/06/25.
 //
+
 import UIKit
 import Kingfisher
 
@@ -149,27 +150,21 @@ class MovieDetailsViewController: UIViewController
 
 class GradientOverlayView: UIView {
 
-    // Define as cores do gradiente
     var gradientColors: [CGColor] = [
-        UIColor.clear.cgColor, // Começa transparente no topo
-        UIColor.black.cgColor  // Termina preto sólido no fundo
+        UIColor.clear.cgColor,
+        UIColor.black.cgColor
     ]
     
-    // Define a direção do gradiente (de cima para baixo)
     var startPoint: CGPoint = CGPoint(x: 0.5, y: 0.0)
     var endPoint: CGPoint = CGPoint(x: 0.5, y: 1.0)
     
-    // Diz ao sistema que a camada principal (layer) desta view É um CAGradientLayer
     override class var layerClass: AnyClass {
         return CAGradientLayer.self
     }
     
-    // Este método é chamado quando a view é desenhada. É o lugar perfeito
-    // para garantir que nosso gradiente esteja configurado.
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        // Converte a layer padrão para CAGradientLayer e a configura
         guard let gradientLayer = self.layer as? CAGradientLayer else { return }
         
         gradientLayer.colors = gradientColors

@@ -23,15 +23,16 @@ class MovieService {
     static let shared = MovieService()
     
     private let session: URLSession
+    private let apiKey = Constants.apiKey
+    private let baseURL = Constants.baseURL
     
     init(session: URLSession = .shared) {
         self.session = session
     }
     
     func fetchMovies(page: Int) async throws -> APIResult<MovieResponse> {
-        let apiKey = "448437debdee32834cb0047792a88c72"
         
-        let urlStr =  "https://api.themoviedb.org/3/trending/movie/day?api_key=\(apiKey)&language=pt-BR&page=\(page)"
+        let urlStr =  "\(baseURL)trending/movie/day?api_key=\(apiKey)&language=en-ES&page=\(page)"
         
         guard let url = URL(string: urlStr) else {
             throw MovieServiceError.unknown("Invalid URL string")
@@ -47,9 +48,8 @@ class MovieService {
     }
     
     func fetchPopularMovies(page: Int) async throws -> APIResult<MovieResponse> {
-        let apiKey = "448437debdee32834cb0047792a88c72"
         
-        let urlStr =  "https://api.themoviedb.org/3/movie/popular?api_key=\(apiKey)&language=pt-BR&page=\(page)"
+        let urlStr =  "\(baseURL)movie/popular?api_key=\(apiKey)&language=en-ES&page=\(page)"
         
         guard let url = URL(string: urlStr) else {
             throw MovieServiceError.unknown("Invalid URL string")
@@ -65,9 +65,8 @@ class MovieService {
     }
     
     func fetchUpcomingMovies(page: Int) async throws -> APIResult<MovieResponse> {
-        let apiKey = "448437debdee32834cb0047792a88c72"
-        
-        let urlStr =  "https://api.themoviedb.org/3/movie/upcoming?api_key=\(apiKey)&language=pt-BR&page=\(page)"
+       
+        let urlStr =  "\(baseURL)movie/upcoming?api_key=\(apiKey)&language=en-ES&page=\(page)"
         
         guard let url = URL(string: urlStr) else {
             throw MovieServiceError.unknown("Invalid URL string")
@@ -83,9 +82,8 @@ class MovieService {
     }
     
     func searchMovies(page: Int, query: String) async throws -> APIResult<MovieResponse> {
-        let apiKey = "448437debdee32834cb0047792a88c72"
         
-        let urlStr =  "https://api.themoviedb.org/3/search/movie?api_key=\(apiKey)&language=pt-BR&query=\(query)&page=\(page)"
+        let urlStr =  "\(baseURL)search/movie?api_key=\(apiKey)&language=en-ES&query=\(query)&page=\(page)"
         
         guard let url = URL(string: urlStr) else {
             throw MovieServiceError.unknown("Invalid URL string")
