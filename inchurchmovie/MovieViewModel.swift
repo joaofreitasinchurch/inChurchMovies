@@ -8,10 +8,8 @@
 import Foundation
 import Combine
 
-@MainActor
 final class MovieViewModel: ObservableObject {
     
-    // MARK: - Published Properties
     @Published var errorMessages: String?
     @Published var status: ViewStatus = .none
     @Published private(set) var searchMovies: [Movie] = []
@@ -20,7 +18,6 @@ final class MovieViewModel: ObservableObject {
     @Published private(set) var trendingMovies: [Movie] = []
     @Published private(set) var upcomingMovies: [Movie] = []
     
-    // MARK: - Public Properties
     var search: String = ""
     var searchTotalPages: Int = 1
     var searchCurrentPage: Int = 1
@@ -31,11 +28,9 @@ final class MovieViewModel: ObservableObject {
     var upcomingTotalPages: Int = 1
     var upcomingCurrentPage: Int = 1
     
-    // MARK: - Private Properties
     private var hasRequestInProgress: Bool = false
     private let movieService = MovieService()
     
-    // MARK: - Initialization
     init() {
         Task {
             await fetchMovies()
@@ -44,7 +39,6 @@ final class MovieViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Public Methods
     func fetchMovies() async {
         
         guard !hasRequestInProgress else {
@@ -137,7 +131,6 @@ final class MovieViewModel: ObservableObject {
                 upcomingMovies.append(contentsOf: newMovies.results.removingDuplicates())
                 status = .loaded
                 upcomingTotalPages = newMovies.totalPages
-                print(newMovies.results)
                 upcomingCurrentPage += 1
             case .failure(let error):
                 errorMessages = error.localizedDescription
@@ -170,43 +163,7 @@ final class MovieViewModel: ObservableObject {
             
             switch result {
             case .success(let newMovies):
-                searchMovies = newMovies.results.removingDuplicates()
-                print(newMovies.results)
-                status = .loaded
-                searchTotalPages = newMovies.totalPages
-            case .failure(let error):
-                errorMessages = error.localizedDescription
-                status = .error(error.localizedDescription)
-            }
-            
-            hasRequestInProgress = false
-            
-        } catch {
-            errorMessages = error.localizedDescription
-            status = .error(error.localizedDescription)
-            hasRequestInProgress = false
-        }
-    }
-    func searchMoviesNextPage(query: String) async {
-        
-        guard !hasRequestInProgress else {
-            return
-        }
-        
-        guard searchCurrentPage <= searchTotalPages else {
-            return
-        }
-        
-        hasRequestInProgress = true
-        status = .loading
-        
-        do {
-            let result = try await movieService.searchMovies(page: searchCurrentPage, query: query)
-            
-            switch result {
-            case .success(let newMovies):
-                searchMovies.append(contentsOf: newMovies.results.removingDuplicates())
-                print(newMovies.results)
+                searchMovies.append(contentsOf:newMovies.results.removingDuplicates())
                 status = .loaded
                 searchTotalPages = newMovies.totalPages
                 searchCurrentPage += 1

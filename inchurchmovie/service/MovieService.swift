@@ -24,7 +24,6 @@ class MovieService {
     
     private let session: URLSession
     
-    /// Allows custom session injection (useful for unit testing).
     init(session: URLSession = .shared) {
         self.session = session
     }
